@@ -1,4 +1,5 @@
-# DayTerm - Interactive day planner for the command line
+# DayTerm
+## Interactive day planner for the command line
 
 DayTerm is an interactive command line tool that displays your appointments and todos in a clear view. It is based on `khal`, `todoman` and `vdirsyncer`.
 
@@ -29,20 +30,20 @@ DayTerm is an interactive command line tool that displays your appointments and 
    chmod +x dayterm.sh
    ```
 3. Optional: Move it to your PATH:
-```bash
-sudo mv dayterm.sh /usr/local/bin/dayterm
-```
+   ```bash
+   sudo mv dayterm.sh /usr/local/bin/dayterm
+   ```
 
 ## Usage
 
 Start DayTerm by running:
-```bash
-./dayterm.sh
-```
+   ```bash
+   ./dayterm.sh
+   ```
 or if you moved it to your PATH:
-```bash
-dayterm
-```
+   ```bash
+   dayterm
+   ```
 
 ### Keyboard shortcuts
 
