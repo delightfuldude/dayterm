@@ -5,6 +5,10 @@ DAYTERM_EVENTS_ERROR=''
 DAYTERM_EVENTS_UPDATED_AT=0
 DAYTERM_DATE_ORDER=''
 
+calendar_cache_file() {
+    printf '%s/events.json\n' "$DAYTERM_CACHE_DIR"
+}
+
 test_khal() {
     command -v khal >/dev/null 2>&1 && khal printcalendars >/dev/null 2>&1
 }
@@ -128,11 +132,14 @@ calendar_query_events_json() {
 
 refresh_calendar_data() {
     local result
+    local cache_file
 
     if result=$(calendar_query_events_json); then
         DAYTERM_EVENTS_JSON="$result"
         DAYTERM_EVENTS_ERROR=''
         DAYTERM_EVENTS_UPDATED_AT=$(date +%s)
+        cache_file=$(calendar_cache_file)
+        printf '%s\n' "$DAYTERM_EVENTS_JSON" > "$cache_file"
     else
         DAYTERM_EVENTS_JSON='[]'
         DAYTERM_EVENTS_ERROR="$result"
@@ -140,55 +147,17 @@ refresh_calendar_data() {
     fi
 }
 
-calendar_event_count() {
-    jq -r 'length' <<< "$DAYTERM_EVENTS_JSON" 2>/dev/null || printf '0'
+load_cached_calendar_data() {
+    local cache_file
+
+    cache_file=$(calendar_cache_file)
+    [[ -s "$cache_file" ]] || return 1
+
+    DAYTERM_EVENTS_JSON=$(cat "$cache_file")
+    DAYTERM_EVENTS_ERROR=''
+    DAYTERM_EVENTS_UPDATED_AT=$(stat -c %Y "$cache_file" 2>/dev/null || printf '0')
 }
 
-dayterm_check() {
-    local rc=0
-
-    printf 'DayTerm root: %s\n' "$DAYTERM_ROOT"
-
-    if test_khal; then
-        printf 'khal: OK (%s)\n' "$(khal --version 2>/dev/null)"
-    else
-        printf 'khal: missing or not configured\n'
-        rc=1
-    fi
-
-    if test_jq; then
-        printf 'jq: OK (%s)\n' "$(jq --version 2>/dev/null)"
-    else
-        printf 'jq: missing\n'
-        rc=1
-    fi
-
-    if command -v vdirsyncer >/dev/null 2>&1; then
-        printf 'vdirsyncer: OK (%s)\n' "$(vdirsyncer --version 2>/dev/null)"
-    else
-        printf 'vdirsyncer: optional, missing\n'
-    fi
-
-    if todo_command >/dev/null 2>&1; then
-        printf 'todo: OK (%s)\n' "$(todo_command)"
-    else
-        printf 'todo: optional, missing\n'
-    fi
-
-    if command -v notify-send >/dev/null 2>&1; then
-        printf 'notify-send: OK\n'
-    else
-        printf 'notify-send: optional, missing\n'
-    fi
-
-    if dt_has_wcwidth; then
-        printf 'wcwidth: OK\n'
-    else
-        printf 'wcwidth: optional, missing; emoji alignment may be imperfect\n'
-    fi
-
-    printf 'settings: %s\n' "$SETTINGS_FILE"
-    printf 'cache: %s\n' "$DAYTERM_CACHE_DIR"
-
-    return "$rc"
+calendar_event_count() {
+    jq -r 'length' <<< "$DAYTERM_EVENTS_JSON" 2>/dev/null || printf '0'
 }

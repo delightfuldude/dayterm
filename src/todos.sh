@@ -4,6 +4,10 @@ DAYTERM_TODOS_JSON='[]'
 DAYTERM_TODOS_ERROR=''
 DAYTERM_TODOS_UPDATED_AT=0
 
+todo_cache_file() {
+    printf '%s/todos.json\n' "$DAYTERM_CACHE_DIR"
+}
+
 todo_command() {
     if command -v todo >/dev/null 2>&1; then
         command -v todo
@@ -24,6 +28,7 @@ todos_should_run() {
 
 refresh_todo_data() {
     local cmd raw_file json_file err_file parsed
+    local cache_file
 
     DAYTERM_TODOS_UPDATED_AT=$(date +%s)
 
@@ -67,7 +72,20 @@ refresh_todo_data() {
 
     DAYTERM_TODOS_JSON="$parsed"
     DAYTERM_TODOS_ERROR=''
+    cache_file=$(todo_cache_file)
+    printf '%s\n' "$DAYTERM_TODOS_JSON" > "$cache_file"
     rm -f "$raw_file" "$json_file" "$err_file"
+}
+
+load_cached_todo_data() {
+    local cache_file
+
+    cache_file=$(todo_cache_file)
+    [[ -s "$cache_file" ]] || return 1
+
+    DAYTERM_TODOS_JSON=$(cat "$cache_file")
+    DAYTERM_TODOS_ERROR=''
+    DAYTERM_TODOS_UPDATED_AT=$(stat -c %Y "$cache_file" 2>/dev/null || printf '0')
 }
 
 todo_count() {

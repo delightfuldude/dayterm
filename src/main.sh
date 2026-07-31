@@ -23,6 +23,7 @@ source_file "utils.sh"
 source_file "settings.sh"
 source_file "calendar/core.sh"
 source_file "todos.sh"
+source_file "check.sh"
 source_file "notifications.sh"
 source_file "display.sh"
 
@@ -67,10 +68,9 @@ if (( DAYTERM_NOTIFY_TEST )); then
     exit $?
 fi
 
-refresh_calendar_data
-refresh_todo_data
-
 if (( DAYTERM_ONCE )); then
+    refresh_calendar_data
+    refresh_todo_data
     display_schedule
     exit 0
 fi
@@ -80,6 +80,9 @@ if ! dt_has_tty; then
     exit 1
 fi
 
+load_cached_calendar_data || true
+load_cached_todo_data || true
+DAYTERM_DEFER_INITIAL_REFRESH=1
 DAYTERM_NEEDS_REDRAW=0
 
 cleanup() {
@@ -148,16 +151,21 @@ main_loop() {
     local next_notification_check
     local key
 
-    now=$(date +%s)
-    next_calendar_refresh=$((now + UPDATE_INTERVAL))
-    next_todo_refresh=$((now + TODO_UPDATE_INTERVAL))
+    now=$SECONDS
+    if [[ "${DAYTERM_DEFER_INITIAL_REFRESH:-0}" == "1" ]]; then
+        next_calendar_refresh=$now
+        next_todo_refresh=$now
+    else
+        next_calendar_refresh=$((now + UPDATE_INTERVAL))
+        next_todo_refresh=$((now + TODO_UPDATE_INTERVAL))
+    fi
     next_notification_check=$now
 
     dt_hide_cursor
     display_schedule
 
     while true; do
-        now=$(date +%s)
+        now=$SECONDS
 
         if (( now >= next_calendar_refresh )); then
             refresh_calendar_data
