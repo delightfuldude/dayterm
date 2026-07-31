@@ -1,16 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Get the directory of this script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-# Source the main script
-source "$SCRIPT_DIR/src/main.sh" || {
-    echo "Error: Failed to source main.sh"
-    exit 1
-}
-
-# Start the main loop
-while true; do
-    # The main loop is now in main.sh
-    sleep infinity
-done
+exec bash "$SCRIPT_DIR/src/main.sh" "$@"

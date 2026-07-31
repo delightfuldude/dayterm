@@ -1,125 +1,190 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Source all required modules
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DAYTERM_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DAYTERM_ROOT="$(cd "$DAYTERM_SRC/.." >/dev/null 2>&1 && pwd)"
 
-# Function to source a file with error checking
 source_file() {
     local file="$1"
-    local full_path="$SCRIPT_DIR/$file"
-    if [ ! -f "$full_path" ]; then
-        echo "Error: File not found - $full_path" >/dev/tty
+    local full_path="$DAYTERM_SRC/$file"
+
+    if [[ ! -f "$full_path" ]]; then
+        printf 'Error: missing module %s\n' "$full_path" >&2
         exit 1
     fi
+
+    # shellcheck source=/dev/null
     if ! source "$full_path"; then
-        echo "Error: Failed to source $file (exit code $?)" >/dev/tty
+        printf 'Error: failed to source %s\n' "$file" >&2
         exit 1
     fi
 }
 
-# Source utils first as other modules depend on it
 source_file "utils.sh"
-
-# Source settings module
 source_file "settings.sh"
-
-# Source calendar modules in dependency order
 source_file "calendar/core.sh"
-source_file "calendar/display.sh"
-source_file "calendar/template.sh"
-source_file "calendar/create_event.sh"
-source_file "calendar/edit_event.sh"
-
-# Source remaining modules
 source_file "todos.sh"
+source_file "notifications.sh"
 source_file "display.sh"
 
-# Verify create_event is available
-if ! declare -F create_event >/dev/null; then
-    echo "Error: create_event function not found" >/dev/tty
+DAYTERM_ONCE=0
+DAYTERM_CHECK=0
+DAYTERM_NOTIFY_TEST=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --once)
+            DAYTERM_ONCE=1
+            ;;
+        --check)
+            DAYTERM_CHECK=1
+            ;;
+        --notify-test)
+            DAYTERM_NOTIFY_TEST=1
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            printf 'Unknown option: %s\n' "$arg" >&2
+            print_usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+load_settings
+init_runtime
+notifications_init
+
+if (( DAYTERM_CHECK )); then
+    dayterm_check
+    exit $?
+fi
+
+if (( DAYTERM_NOTIFY_TEST )); then
+    notifications_send "DayTerm notification test" "Desktop notifications are reachable."
+    exit $?
+fi
+
+refresh_calendar_data
+refresh_todo_data
+
+if (( DAYTERM_ONCE )); then
+    display_schedule
+    exit 0
+fi
+
+if ! dt_has_tty; then
+    printf 'DayTerm needs a TTY for interactive mode. Use --once for plain output.\n' >&2
     exit 1
 fi
 
-# Trap for clean exit with CTRL+C
-trap 'echo -e "\nProgram is terminating..." >/dev/tty; exit' INT
+DAYTERM_NEEDS_REDRAW=0
 
-# Load settings
-load_settings
+cleanup() {
+    dt_show_cursor
+    dt_reset_screen
+    dt_out ""
+    dt_out "DayTerm stopped."
+}
 
-# Initial display right after start
-display_schedule
+trap 'DAYTERM_NEEDS_REDRAW=1' WINCH
+trap 'cleanup; exit 0' INT TERM
 
-# Store initial window size and start time
-old_cols=$(tput cols)
-old_lines=$(tput lines)
-last_update=$(date +%s)
+handle_key() {
+    local key="$1"
 
-# Main loop with keyboard control
-while true; do
-    current_time=$(date +%s)
-    current_cols=$(tput cols)
-    current_lines=$(tput lines)
-    
-    # Check for updates
-    if [ "$old_cols" -ne "$current_cols" ] || \
-       [ "$old_lines" -ne "$current_lines" ] || \
-       [ $((current_time - last_update)) -ge $UPDATE_INTERVAL ]; then
-        display_schedule
-        old_cols=$current_cols
-        old_lines=$current_lines
-        last_update=$current_time
-    fi
+    case "$key" in
+        e)
+            show_event_details
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        t)
+            show_todo_details
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        h)
+            show_help
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        n)
+            create_event
+            refresh_calendar_data
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        a)
+            edit_todo
+            refresh_todo_data
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        s)
+            sync_calendars
+            refresh_calendar_data
+            refresh_todo_data
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        c)
+            open_calendar
+            refresh_calendar_data
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        i)
+            edit_settings
+            notifications_init
+            DAYTERM_NEEDS_REDRAW=1
+            ;;
+        q)
+            cleanup
+            exit 0
+            ;;
+    esac
+}
 
-    # Check for keyboard input (non-blocking)
-    if read -t 1 -n 1 key </dev/tty; then
-        case $key in
-            e)
-                show_event_details
-                display_schedule
-                ;;
-            t)
-                show_todo_details
-                display_schedule
-                ;;
-            h)
-                show_help
-                ;;
-            n)
-                # Save current screen
-                tput smcup >/dev/tty
-                create_event
-                # Restore screen and refresh display
-                tput rmcup >/dev/tty
-                display_schedule
-                ;;
-            a)
-                edit_todo
-                display_schedule
-                ;;
-            s)
-                # Save current screen
-                tput smcup >/dev/tty
-                vdirsyncer sync >/dev/tty
-                # Restore screen and refresh display
-                tput rmcup >/dev/tty
-                display_schedule
-                ;;
-            c)
-                # Save current screen
-                tput smcup >/dev/tty
-                ikhal >/dev/tty
-                # Restore screen and refresh display
-                tput rmcup >/dev/tty
-                display_schedule
-                ;;
-            i)
-                edit_settings
-                display_schedule
-                ;;
-            q)
-                echo -e "\nProgram is terminating..." >/dev/tty
-                exit 0
-                ;;
-        esac
-    fi
-done
+main_loop() {
+    local now
+    local next_calendar_refresh
+    local next_todo_refresh
+    local next_notification_check
+    local key
+
+    now=$(date +%s)
+    next_calendar_refresh=$((now + UPDATE_INTERVAL))
+    next_todo_refresh=$((now + TODO_UPDATE_INTERVAL))
+    next_notification_check=$now
+
+    dt_hide_cursor
+    display_schedule
+
+    while true; do
+        now=$(date +%s)
+
+        if (( now >= next_calendar_refresh )); then
+            refresh_calendar_data
+            next_calendar_refresh=$((now + UPDATE_INTERVAL))
+            DAYTERM_NEEDS_REDRAW=1
+        fi
+
+        if (( now >= next_todo_refresh )); then
+            refresh_todo_data
+            next_todo_refresh=$((now + TODO_UPDATE_INTERVAL))
+            DAYTERM_NEEDS_REDRAW=1
+        fi
+
+        if (( now >= next_notification_check )); then
+            notifications_check_due "$DAYTERM_EVENTS_JSON"
+            next_notification_check=$((now + NOTIFICATION_CHECK_INTERVAL))
+        fi
+
+        if (( DAYTERM_NEEDS_REDRAW )); then
+            display_schedule
+            DAYTERM_NEEDS_REDRAW=0
+        fi
+
+        if read -rsn 1 -t "$IDLE_TICK_SECONDS" key <"$DAYTERM_TTY"; then
+            handle_key "$key"
+        fi
+    done
+}
+
+main_loop
