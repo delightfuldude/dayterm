@@ -37,6 +37,8 @@ normalize_settings() {
 
     [[ "$WEEK_START_HOUR" =~ ^([0-9]|1[0-9]|2[0-3])$ ]] || WEEK_START_HOUR=7
     [[ "$WEEK_END_HOUR" =~ ^([1-9]|1[0-9]|2[0-4])$ ]] || WEEK_END_HOUR=20
+    is_positive_int "$WEEK_CURSOR_STEP_MINUTES" || WEEK_CURSOR_STEP_MINUTES=30
+    (( WEEK_CURSOR_STEP_MINUTES <= 60 )) || WEEK_CURSOR_STEP_MINUTES=30
     (( WEEK_END_HOUR > WEEK_START_HOUR )) || {
         WEEK_START_HOUR=7
         WEEK_END_HOUR=20

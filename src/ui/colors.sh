@@ -31,6 +31,7 @@ C_OK=''
 C_WARN=''
 C_BAD=''
 C_KEY=''
+C_CURSOR=''
 
 init_colors() {
     local theme="${COLOR_THEME:-auto}"
@@ -62,7 +63,7 @@ clear_colors() {
     for name in BLUE CYAN GREEN YELLOW RED MAGENTA BOLD DIM NC \
         C_TITLE C_BORDER C_LABEL C_VALUE C_MUTED C_TIME C_EVENT C_CALENDAR \
         C_TODO_ID C_DUE_OVERDUE C_DUE_TODAY C_DUE_FUTURE C_PRIORITY_HIGH \
-        C_PRIORITY_MEDIUM C_PRIORITY_LOW C_OK C_WARN C_BAD C_KEY; do
+        C_PRIORITY_MEDIUM C_PRIORITY_LOW C_OK C_WARN C_BAD C_KEY C_CURSOR; do
         printf -v "$name" ''
     done
 }
@@ -113,6 +114,7 @@ apply_color_theme() {
         C_TIME="${BOLD}${BLUE}"
         C_EVENT='\033[38;5;236m'
         C_CALENDAR='\033[38;5;60m'
+        C_CURSOR='\033[1;38;5;255;48;5;25m'
     else
         BLUE='\033[38;5;81m'
         CYAN='\033[38;5;87m'
@@ -129,6 +131,7 @@ apply_color_theme() {
         C_TIME="${BOLD}${BLUE}"
         C_EVENT='\033[38;5;255m'
         C_CALENDAR='\033[38;5;153m'
+        C_CURSOR='\033[1;38;5;16;48;5;87m'
     fi
 
     C_TODO_ID='\033[38;5;244m'

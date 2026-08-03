@@ -22,6 +22,9 @@ bash "$ROOT/tests/notifications.sh" || status=1
 bash "$ROOT/tests/view.sh" || status=1
 bash "$ROOT/tests/calendar_query.sh" || status=1
 python3 "$ROOT/tests/dates.py" || status=1
+python3 "$ROOT/tests/selection.py" || status=1
+python3 "$ROOT/tests/render_week.py" || status=1
+bash "$ROOT/tests/sync.sh" || status=1
 
 if "$ROOT/dayterm.sh" --once --view invalid > /dev/null 2>&1; then
     printf 'invalid view was accepted\n' >&2
@@ -56,6 +59,17 @@ for line_number, line in enumerate(path.read_text().splitlines(), 1):
         print(f'{path}:{line_number}: visible width {wcswidth(plain)} != {width}', file=sys.stderr)
         sys.exit(1)
 PY
+    done
+fi
+
+if python3 -c 'import wcwidth' >/dev/null 2>&1; then
+    for size in '80 24 23' '120 50 49'; do
+        read -r columns lines expected <<< "$size"
+        for view in week month; do
+            output="$TEST_DIR/$view-$columns.out"
+            DAYTERM_FORCE_COLOR=1 COLUMNS="$columns" LINES="$lines" "$ROOT/dayterm.sh" --once --view "$view" > "$output" || status=1
+            python3 "$ROOT/tests/render_layout.py" "$output" "${view^}" "$columns" "$expected" || status=1
+        done
     done
 fi
 

@@ -58,5 +58,18 @@ def build_plain(title, lines, cols, _style, palette):
     return [heading, rule, *[fit(line, cols, palette["reset"]) for line in lines]]
 
 
-def grid_line(cells, width, separator, c):
-    return f" {c('border', separator)} ".join(rpad(cell, width) for cell in cells)
+def column_widths(total_width, count):
+    content_width = max(count, total_width - (count - 1) * 3)
+    base, remainder = divmod(content_width, count)
+    return [base + (1 if index < remainder else 0) for index in range(count)]
+
+
+def grid_line(cells, widths, separator, c):
+    divider = f" {c('border', separator)} "
+    return divider.join(rpad(cell, width) for cell, width in zip(cells, widths))
+
+
+def grid_rule(widths, style, c):
+    horizontal = "-" if style == "ascii" else "─"
+    junction = "+" if style == "ascii" else "┼"
+    return c("border", (horizontal + junction + horizontal).join(horizontal * width for width in widths))

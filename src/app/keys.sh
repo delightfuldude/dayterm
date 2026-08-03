@@ -7,20 +7,28 @@ handle_key() {
         a|w|m|t)
             dayterm_apply_view_change view_set "$(view_name_for_key "$key")"
             ;;
-        h|j|k|l)
+        h|j|k|l|J|K)
             dayterm_apply_view_change view_move "$key"
             ;;
         g)
             dayterm_apply_view_change view_go_today
             ;;
         e)
-            show_event_details
+            if [[ "$DAYTERM_VIEW" == "week" || "$DAYTERM_VIEW" == "month" ]]; then
+                activate_calendar_cursor
+            else
+                show_event_details
+            fi
             refresh_calendar_data
             refresh_notification_calendar_data
             ;;
         '')
             if [[ "$DAYTERM_VIEW" == "tasks" ]]; then
                 show_todo_details
+            elif [[ "$DAYTERM_VIEW" == "week" || "$DAYTERM_VIEW" == "month" ]]; then
+                activate_calendar_cursor
+                refresh_calendar_data
+                refresh_notification_calendar_data
             else
                 show_event_details
                 refresh_calendar_data
@@ -28,7 +36,7 @@ handle_key() {
             fi
             ;;
         n)
-            create_event && refresh_calendar_data
+            create_event_for_context && refresh_calendar_data
             refresh_notification_calendar_data
             ;;
         N)

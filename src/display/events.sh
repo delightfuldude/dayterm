@@ -111,7 +111,30 @@ sync_calendars() {
     fi
 
     lock_file="$DAYTERM_CACHE_DIR/sync.lock"
-    dt_run_fullscreen flock -n "$lock_file" vdirsyncer sync
+    dt_run_fullscreen run_vdirsyncer_sync "$lock_file"
+}
+
+run_vdirsyncer_sync() {
+    local lock_file="$1" status config="${VDIRSYNCER_CONFIG:-}"
+    local command=(vdirsyncer -v INFO)
+
+    if [[ -n "$config" ]]; then
+        if [[ ! -f "$config" ]]; then
+            printf 'Configured vdirsyncer file not found: %s\n' "$config" >&2
+            return 2
+        fi
+        command+=(-c "$config")
+    fi
+
+    printf 'Synchronizing calendars and contacts...\n\n'
+    flock -E 75 -n "$lock_file" "${command[@]}" sync
+    status=$?
+    if (( status == 75 )); then
+        printf '\nAnother DayTerm sync is already running.\n' >&2
+    elif (( status == 0 )); then
+        printf '\nSynchronization completed.\n'
+    fi
+    return "$status"
 }
 
 open_calendar() {

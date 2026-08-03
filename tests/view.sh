@@ -17,8 +17,18 @@ view_move h
 [[ "$DAYTERM_QUERY_START" == "2026-07-27" && "$DAYTERM_QUERY_END" == "2026-08-02" ]] || exit 1
 
 view_move j
+[[ "$DAYTERM_SELECTED_DATE" == "2026-07-30" && "$DAYTERM_CURSOR_MINUTES" == "450" ]] || exit 1
+[[ "$DAYTERM_QUERY_START" == "2026-07-27" && "$DAYTERM_QUERY_END" == "2026-08-02" ]] || exit 1
+
+view_move J
 [[ "$DAYTERM_SELECTED_DATE" == "2026-08-06" ]] || exit 1
 [[ "$DAYTERM_QUERY_START" == "2026-08-03" && "$DAYTERM_QUERY_END" == "2026-08-09" ]] || exit 1
+
+DAYTERM_CURSOR_MINUTES=420
+view_move k
+[[ "$DAYTERM_CURSOR_MINUTES" == "-1" ]] || exit 1
+view_move j
+[[ "$DAYTERM_CURSOR_MINUTES" == "420" ]] || exit 1
 
 view_set month
 [[ "$DAYTERM_QUERY_START" == "2026-08-01" && "$DAYTERM_QUERY_END" == "2026-08-31" ]] || exit 1

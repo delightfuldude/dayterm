@@ -12,6 +12,7 @@ set_default_settings() {
     DEFAULT_VIEW="agenda"
     WEEK_START_HOUR=7
     WEEK_END_HOUR=20
+    WEEK_CURSOR_STEP_MINUTES=30
 
     TODOS_ENABLED="auto"
     TODO_LIMIT=8
@@ -57,6 +58,7 @@ IDLE_TICK_SECONDS=1
 DEFAULT_VIEW="agenda"
 WEEK_START_HOUR=7
 WEEK_END_HOUR=20
+WEEK_CURSOR_STEP_MINUTES=30
 
 # auto, 1, or 0. auto uses todo/todoman if available.
 TODOS_ENABLED="auto"

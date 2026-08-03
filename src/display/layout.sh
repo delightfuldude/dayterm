@@ -11,16 +11,17 @@ format_updated_at() {
 }
 
 display_schedule() {
-    local cols events todos updated screen
+    local cols rows events todos updated screen
 
     cols=$(dt_cols)
+    rows=$(dt_rows)
     events=$(calendar_event_count)
     todos=$(todo_count)
     updated=$(format_updated_at "$DAYTERM_EVENTS_UPDATED_AT")
     calendar_detect_date_order
 
     if command -v python3 >/dev/null 2>&1 &&
-        screen=$(render_screen_fast "$cols" "$events" "$todos" "$updated"); then
+        screen=$(render_screen_fast "$cols" "$rows" "$events" "$todos" "$updated"); then
         dt_clear
         dt_begin_screen
         dt_out "$screen"
@@ -57,7 +58,7 @@ display_schedule() {
 }
 
 render_screen_fast() {
-    local cols="$1" events="$2" todos="$3" updated="$4"
+    local cols="$1" rows="$2" events="$3" todos="$4" updated="$5"
     local events_file todos_file status
 
     events_file=$(mktemp) || return 1
@@ -79,7 +80,8 @@ render_screen_fast() {
         "$C_OK" "$C_WARN" "$C_BAD" "$C_KEY" "$NC" \
         "$events_file" "$todos_file" \
         "$DAYTERM_VIEW" "$DAYTERM_SELECTED_DATE" "$DAYTERM_DATE_ORDER" \
-        "$WEEK_START_HOUR" "$WEEK_END_HOUR" "$TUI_BOXES"
+        "$WEEK_START_HOUR" "$WEEK_END_HOUR" "$TUI_BOXES" \
+        "$rows" "$DAYTERM_CURSOR_MINUTES" "$C_CURSOR" "$WEEK_CURSOR_STEP_MINUTES"
     status=$?
 
     rm -f "$events_file" "$todos_file"
@@ -122,14 +124,21 @@ render_command_bar() {
 }
 
 render_command_lines() {
-    local cols="${1:-80}"
+    local cols="${1:-80}" movement
+
+    case "$DAYTERM_VIEW" in
+        week) movement='[h/l] day  [j/k] time  [J/K] week' ;;
+        month) movement='[h/l] day  [j/k] week' ;;
+        *) movement='[h/j/k/l] move' ;;
+    esac
 
     if (( cols < 64 )); then
         printf '%s agenda  %s week  %s month  %s tasks\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[w]")" "$(color_text "$C_KEY" "[m]")" "$(color_text "$C_KEY" "[t]")"
-        printf '%s move  %s today  %s new event  %s new todo\n' "$(color_text "$C_KEY" "[h/j/k/l]")" "$(color_text "$C_KEY" "[g]")" "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")"
+        printf '%s  %s today\n' "$movement" "$(color_text "$C_KEY" "[g]")"
+        printf '%s open  %s event  %s todo\n' "$(color_text "$C_KEY" "[Enter]")" "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")"
         printf '%s sync  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[?]")" "$(color_text "$C_KEY" "[q]")"
     else
-        printf '%s agenda  %s week  %s month  %s tasks  %s move  %s today\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[w]")" "$(color_text "$C_KEY" "[m]")" "$(color_text "$C_KEY" "[t]")" "$(color_text "$C_KEY" "[h/j/k/l]")" "$(color_text "$C_KEY" "[g]")"
-        printf '%s event  %s todo  %s sync  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")" "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[?]")" "$(color_text "$C_KEY" "[q]")"
+        printf '%s agenda  %s week  %s month  %s tasks  %s  %s today\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[w]")" "$(color_text "$C_KEY" "[m]")" "$(color_text "$C_KEY" "[t]")" "$movement" "$(color_text "$C_KEY" "[g]")"
+        printf '%s open  %s event  %s todo  %s sync  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[Enter]")" "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")" "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[?]")" "$(color_text "$C_KEY" "[q]")"
     fi
 }

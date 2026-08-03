@@ -45,6 +45,7 @@ migrate_settings() {
     setting_exists DEFAULT_VIEW || append_setting 'DEFAULT_VIEW="agenda"'
     setting_exists WEEK_START_HOUR || append_setting 'WEEK_START_HOUR=7'
     setting_exists WEEK_END_HOUR || append_setting 'WEEK_END_HOUR=20'
+    setting_exists WEEK_CURSOR_STEP_MINUTES || append_setting 'WEEK_CURSOR_STEP_MINUTES=30'
     setting_exists TODOS_ENABLED || append_setting 'TODOS_ENABLED="auto"'
     setting_exists TODO_LIMIT || append_setting 'TODO_LIMIT=8'
     setting_exists NOTIFICATIONS_ENABLED || append_setting "NOTIFICATIONS_ENABLED=${notification_enabled}"

@@ -109,6 +109,16 @@ dt_cols() {
     fi
 }
 
+dt_rows() {
+    if dt_has_tty && [[ -n "${TERM:-}" && "${TERM:-}" != "dumb" ]]; then
+        tput lines 2>/dev/null || printf '%s' "${LINES:-24}"
+    elif [[ "${LINES:-}" =~ ^[0-9]+$ && "${LINES:-0}" -gt 0 ]]; then
+        printf '%s' "$LINES"
+    else
+        printf '24'
+    fi
+}
+
 dt_pause() {
     dt_out ""
     dt_out "${GREEN}Press any key to return...${NC}"
@@ -120,15 +130,21 @@ dt_pause() {
 dt_run_fullscreen() {
     local status
 
+    dt_show_cursor
     if dt_has_tty && [[ -n "${TERM:-}" && "${TERM:-}" != "dumb" ]]; then
         tput smcup >"$DAYTERM_TTY" 2>/dev/null || true
+        tput clear >"$DAYTERM_TTY" 2>/dev/null || true
     fi
 
     "$@" <"$DAYTERM_TTY" >"$DAYTERM_TTY" 2>&1
     status=$?
 
     dt_out ""
-    dt_out "${GREEN}Command finished. Press any key to return...${NC}"
+    if (( status == 0 )); then
+        dt_out "${GREEN}Command finished successfully. Press any key to return...${NC}"
+    else
+        dt_out "${RED}Command failed (status $status). Press any key to return...${NC}"
+    fi
     if dt_has_tty; then
         read -rsn 1 <"$DAYTERM_TTY"
     fi
@@ -136,6 +152,7 @@ dt_run_fullscreen() {
     if dt_has_tty && [[ -n "${TERM:-}" && "${TERM:-}" != "dumb" ]]; then
         tput rmcup >"$DAYTERM_TTY" 2>/dev/null || true
     fi
+    dt_hide_cursor
 
     return "$status"
 }

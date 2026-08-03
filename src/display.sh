@@ -15,4 +15,5 @@ source_display_module() {
 
 source_display_module events.sh
 source_display_module todos.sh
+source_display_module selection.sh
 source_display_module layout.sh

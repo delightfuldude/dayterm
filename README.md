@@ -7,9 +7,10 @@ DayTerm is an interactive command line tool that displays your appointments and 
 ## Features
 
 - Switchable agenda, week, month, and task views
-- Weekly time grid with calendar blocks and a compact narrow-terminal fallback
-- Monthly grid with event counts and details for the selected day
-- Vim-style date navigation without reloading unchanged calendar ranges
+- Responsive weekly time grid with calendar blocks and a compact narrow-terminal fallback
+- Responsive monthly grid with event counts and titles inside each day
+- Vim-style calendar cursor for selecting, editing, and creating events
+- Date navigation without reloading unchanged calendar ranges
 - Automatic update at adjustable intervals
 - Dynamic adjustment to window size changes
 - Interactive commands for detailed views
@@ -67,11 +68,13 @@ Useful checks:
 ### Keyboard shortcuts
 
 - `a` / `w` / `m` / `t`: agenda, week, month, and task views
-- `h` / `j` / `k` / `l`: move by day or week, depending on the view
+- Week: `h` / `l` select a day, `j` / `k` move the time cursor, and `J` / `K` move by week
+- Month: `h` / `l` select a day and `j` / `k` move by week
+- Agenda: `h` / `k` move back and `j` / `l` move forward
 - `g`: return to today
-- `e` or `Enter`: event details; `Enter` opens task details in the task view
-- `n` / `N`: create an event or todo
-- `s`: synchronize with vdirsyncer
+- `e` or `Enter`: edit the event under the calendar cursor, or create one in an empty slot
+- `n` / `N`: create an event at the selected date/time, or create a todo
+- `s`: synchronize with vdirsyncer and show its progress and result
 - `c`: open ikhal or khal interactive
 - `i`: edit DayTerm settings
 - `?`: help
@@ -93,6 +96,7 @@ Important DayTerm settings:
 - `TODO_UPDATE_INTERVAL`: todo refresh interval in seconds
 - `DEFAULT_VIEW`: `agenda`, `week`, `month`, or `tasks`
 - `WEEK_START_HOUR` / `WEEK_END_HOUR`: visible hours in the weekly time grid
+- `WEEK_CURSOR_STEP_MINUTES`: vertical cursor step in the weekly time grid
 - `TODOS_ENABLED`: `auto`, `1`, or `0`
 - `NOTIFICATIONS_ENABLED`: `1` or `0`
 - `NOTIFICATION_OFFSETS`: reminder offsets in minutes before an event
@@ -117,7 +121,7 @@ The script updates the display:
 
 Calendar and todo tools are not polled every second. The main loop only checks keyboard input, refresh deadlines, and notification deadlines, which keeps idle CPU usage low on older hardware.
 
-Navigation inside the currently loaded week or month only redraws the buffered screen. A new `khal` process is started when the visible date range actually changes. Notifications use their own small today-oriented event cache, so browsing another month cannot suppress current reminders.
+Navigation inside the currently loaded week or month only redraws the buffered screen. Both grids use the available terminal height and are redrawn as one buffered frame. A new `khal` process is started when the visible date range actually changes. Notifications use their own small today-oriented event cache, so browsing another month cannot suppress current reminders.
 
 ## Architecture
 
@@ -130,7 +134,7 @@ calcurse and Taskwarrior are UX references only; they are not DayTerm backends.
 
 ## Roadmap
 
-- Event and task selection directly inside all views
+- Cursor-based event and task selection in the agenda and task views
 - Configurable handling of all-day reminders
 - iTIP/iMIP invitation support for REQUEST, REPLY and CANCEL messages
 - Interoperability tests with Thunderbird, Outlook, Google Calendar and Nextcloud
