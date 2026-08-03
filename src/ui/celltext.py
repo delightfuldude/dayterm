@@ -1,4 +1,12 @@
-from wcwidth import wcwidth
+try:
+    from wcwidth import wcwidth
+except ImportError:
+    from unicodedata import category, east_asian_width
+
+    def wcwidth(character):
+        if category(character).startswith(("C", "M")):
+            return 0
+        return 2 if east_asian_width(character) in ("F", "W") else 1
 
 
 def decode_ansi(value):

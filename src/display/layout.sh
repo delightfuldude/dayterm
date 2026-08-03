@@ -17,8 +17,9 @@ display_schedule() {
     events=$(calendar_event_count)
     todos=$(todo_count)
     updated=$(format_updated_at "$DAYTERM_EVENTS_UPDATED_AT")
+    calendar_detect_date_order
 
-    if [[ "$TUI_BOXES" == "1" ]] && dt_has_wcwidth &&
+    if command -v python3 >/dev/null 2>&1 &&
         screen=$(render_screen_fast "$cols" "$events" "$todos" "$updated"); then
         dt_clear
         dt_begin_screen
@@ -70,14 +71,15 @@ render_screen_fast() {
 
     python3 "$DAYTERM_SRC/display/render.py" \
         "$cols" "$events" "$todos" "$updated" \
-        "$AGENDA_START" "$AGENDA_END" \
         "$NOTIFICATIONS_ENABLED" "$NOTIFICATION_OFFSETS" "$NOTIFICATION_CHECK_INTERVAL" \
         "$DAYTERM_LAST_NOTIFICATION" "$TODO_LIMIT" "$TUI_BOX_STYLE" \
         "$DAYTERM_EVENTS_ERROR" "$DAYTERM_TODOS_ERROR" "$TODOS_ENABLED" \
         "$C_BORDER" "$C_TITLE" "$C_LABEL" "$C_VALUE" "$C_MUTED" "$C_TIME" "$C_EVENT" "$C_CALENDAR" \
         "$C_TODO_ID" "$C_DUE_OVERDUE" "$C_DUE_TODAY" "$C_DUE_FUTURE" "$C_PRIORITY_HIGH" "$C_PRIORITY_MEDIUM" "$C_PRIORITY_LOW" \
         "$C_OK" "$C_WARN" "$C_BAD" "$C_KEY" "$NC" \
-        "$events_file" "$todos_file"
+        "$events_file" "$todos_file" \
+        "$DAYTERM_VIEW" "$DAYTERM_SELECTED_DATE" "$DAYTERM_DATE_ORDER" \
+        "$WEEK_START_HOUR" "$WEEK_END_HOUR" "$TUI_BOXES"
     status=$?
 
     rm -f "$events_file" "$todos_file"
@@ -98,7 +100,7 @@ render_overview_lines() {
 
     printf '%s\n' "$(color_text "$C_TITLE" "$(date '+%A, %Y-%m-%d %H:%M')")"
     printf '%s %s | %s %s | %s %s | %s %s\n' \
-        "$(color_text "$C_LABEL" "Range:")" "$(color_text "$C_VALUE" "$AGENDA_START $AGENDA_END")" \
+        "$(color_text "$C_LABEL" "View:")" "$(color_text "$C_VALUE" "$DAYTERM_VIEW / $DAYTERM_SELECTED_DATE")" \
         "$(color_text "$C_LABEL" "Events:")" "$(color_text "$C_VALUE" "$events")" \
         "$(color_text "$C_LABEL" "Todos:")" "$(color_text "$C_VALUE" "$todos")" \
         "$(color_text "$C_LABEL" "Refreshed:")" "$(color_text "$C_VALUE" "$updated")"
@@ -123,11 +125,11 @@ render_command_lines() {
     local cols="${1:-80}"
 
     if (( cols < 64 )); then
-        printf '%s events  %s todos  %s new event\n' "$(color_text "$C_KEY" "[e]")" "$(color_text "$C_KEY" "[t]")" "$(color_text "$C_KEY" "[n]")"
-        printf '%s add todo  %s sync  %s calendar\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[c]")"
-        printf '%s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[h]")" "$(color_text "$C_KEY" "[q]")"
+        printf '%s agenda  %s week  %s month  %s tasks\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[w]")" "$(color_text "$C_KEY" "[m]")" "$(color_text "$C_KEY" "[t]")"
+        printf '%s move  %s today  %s new event  %s new todo\n' "$(color_text "$C_KEY" "[h/j/k/l]")" "$(color_text "$C_KEY" "[g]")" "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")"
+        printf '%s sync  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[?]")" "$(color_text "$C_KEY" "[q]")"
     else
-        printf '%s events  %s todos  %s new event  %s add todo\n' "$(color_text "$C_KEY" "[e]")" "$(color_text "$C_KEY" "[t]")" "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[a]")"
-        printf '%s sync    %s calendar  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[c]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[h]")" "$(color_text "$C_KEY" "[q]")"
+        printf '%s agenda  %s week  %s month  %s tasks  %s move  %s today\n' "$(color_text "$C_KEY" "[a]")" "$(color_text "$C_KEY" "[w]")" "$(color_text "$C_KEY" "[m]")" "$(color_text "$C_KEY" "[t]")" "$(color_text "$C_KEY" "[h/j/k/l]")" "$(color_text "$C_KEY" "[g]")"
+        printf '%s event  %s todo  %s sync  %s settings  %s help  %s quit\n' "$(color_text "$C_KEY" "[n]")" "$(color_text "$C_KEY" "[N]")" "$(color_text "$C_KEY" "[s]")" "$(color_text "$C_KEY" "[i]")" "$(color_text "$C_KEY" "[?]")" "$(color_text "$C_KEY" "[q]")"
     fi
 }

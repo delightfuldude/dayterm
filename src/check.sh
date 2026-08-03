@@ -19,6 +19,13 @@ dayterm_check() {
         rc=1
     fi
 
+    if command -v python3 >/dev/null 2>&1; then
+        printf 'python3: OK (%s)\n' "$(python3 --version 2>&1)"
+    else
+        printf 'python3: missing\n'
+        rc=1
+    fi
+
     if command -v vdirsyncer >/dev/null 2>&1; then
         printf 'vdirsyncer: OK (%s)\n' "$(vdirsyncer --version 2>/dev/null)"
     else
@@ -40,7 +47,7 @@ dayterm_check() {
     if dt_has_wcwidth; then
         printf 'wcwidth: OK\n'
     else
-        printf 'wcwidth: optional, missing; emoji alignment may be imperfect\n'
+        printf 'wcwidth: optional, using standard-library width fallback\n'
     fi
 
     printf 'settings: %s\n' "$SETTINGS_FILE"

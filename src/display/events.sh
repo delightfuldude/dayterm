@@ -84,10 +84,8 @@ show_event_details() {
 
     if [[ -n "$calendar" && -n "$title" ]]; then
         dt_run_fullscreen khal edit --include-calendar "$calendar" "$title" --show-past
-        refresh_calendar_data
     elif [[ -n "$uid" ]]; then
         dt_run_fullscreen khal edit "$uid" --show-past
-        refresh_calendar_data
     fi
 }
 

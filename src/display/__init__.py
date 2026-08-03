@@ -1,0 +1,1 @@
+"""DayTerm TUI rendering package."""
